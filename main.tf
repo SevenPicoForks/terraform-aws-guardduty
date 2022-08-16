@@ -19,7 +19,7 @@ resource "aws_guardduty_detector" "guardduty" {
 #-----------------------------------------------------------------------------------------------------------------------
 module "sns_topic" {
 
-  source  = "cloudposse/sns-topic/aws"
+  source  = "registry.terraform.io/cloudposse/sns-topic/aws"
   version = "0.20.1"
   count   = local.create_sns_topic ? 1 : 0
 
@@ -31,7 +31,7 @@ module "sns_topic" {
 }
 
 module "findings_label" {
-  source  = "cloudposse/label/null"
+  source  = "registry.terraform.io/cloudposse/label/null"
   version = "0.25.0"
 
   attributes = concat(module.this.attributes, ["guardduty", "findings"])
