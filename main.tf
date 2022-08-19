@@ -2,7 +2,8 @@
 # Subscribe the Acccount to GuardDuty
 #-----------------------------------------------------------------------------------------------------------------------
 resource "aws_guardduty_detector" "guardduty" {
-  enable                       = module.this.enabled
+  count                        = module.context.enabled ? 1 : 0
+  enable                       = module.context.enabled
   finding_publishing_frequency = var.finding_publishing_frequency
 
   datasources {
@@ -18,34 +19,31 @@ resource "aws_guardduty_detector" "guardduty" {
 # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/resource-based-policies-cwe.html#sns-permissions
 #-----------------------------------------------------------------------------------------------------------------------
 module "sns_topic" {
-
-  source  = "registry.terraform.io/cloudposse/sns-topic/aws"
-  version = "0.20.1"
-  count   = local.create_sns_topic ? 1 : 0
+  source     = "app.terraform.io/SevenPico/sns-topic/aws"
+  version    = "0.20.1.2"
+  context    = module.context.self
+  enabled    = local.create_sns_topic
+  attributes = concat(module.context.attributes, ["guardduty"])
 
   subscribers     = var.subscribers
   sqs_dlq_enabled = false
-
-  attributes = concat(module.this.attributes, ["guardduty"])
-  context    = module.this.context
 }
 
 module "findings_label" {
-  source  = "registry.terraform.io/cloudposse/label/null"
-  version = "0.25.0"
-
-  attributes = concat(module.this.attributes, ["guardduty", "findings"])
-  context    = module.this.context
+  source     = "app.terraform.io/SevenPico/context/null"
+  version    = "1.0.1"
+  context    = module.context.self
+  attributes = concat(module.context.attributes, ["guardduty", "findings"])
 }
 
 resource "aws_sns_topic_policy" "sns_topic_publish_policy" {
-  count  = module.this.enabled && local.create_sns_topic ? 1 : 0
+  count  = module.context.enabled && local.create_sns_topic ? 1 : 0
   arn    = local.findings_notification_arn
   policy = data.aws_iam_policy_document.sns_topic_policy[0].json
 }
 
 data "aws_iam_policy_document" "sns_topic_policy" {
-  count     = module.this.enabled && local.create_sns_topic ? 1 : 0
+  count     = module.context.enabled && local.create_sns_topic ? 1 : 0
   policy_id = "GuardDutyPublishToSNS"
   statement {
     sid = ""
@@ -65,7 +63,7 @@ resource "aws_cloudwatch_event_rule" "findings" {
   count       = local.enable_cloudwatch == true ? 1 : 0
   name        = module.findings_label.id
   description = "GuardDuty Findings"
-  tags        = module.this.tags
+  tags        = module.context.tags
 
   event_pattern = jsonencode(
     {
@@ -89,8 +87,8 @@ resource "aws_cloudwatch_event_target" "imported_findings" {
 # Locals and Data References
 #-----------------------------------------------------------------------------------------------------------------------
 locals {
-  enable_cloudwatch         = module.this.enabled && (var.enable_cloudwatch || local.enable_notifications)
-  enable_notifications      = module.this.enabled && (var.create_sns_topic || var.findings_notification_arn != null)
-  create_sns_topic          = module.this.enabled && var.create_sns_topic
+  enable_cloudwatch         = module.context.enabled && (var.enable_cloudwatch || local.enable_notifications)
+  enable_notifications      = module.context.enabled && (var.create_sns_topic || var.findings_notification_arn != null)
+  create_sns_topic          = module.context.enabled && var.create_sns_topic
   findings_notification_arn = local.enable_notifications ? (var.findings_notification_arn != null ? var.findings_notification_arn : module.sns_topic[0].sns_topic.arn) : null
 }
