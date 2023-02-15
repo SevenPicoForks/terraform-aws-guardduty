@@ -19,8 +19,8 @@ resource "aws_guardduty_detector" "guardduty" {
 # https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/resource-based-policies-cwe.html#sns-permissions
 #-----------------------------------------------------------------------------------------------------------------------
 module "sns_topic" {
-  source     = "app.terraform.io/SevenPico/sns-topic/aws"
-  version    = "0.20.1.2"
+  source     = "SevenPicoForks/sns-topic/aws"
+  version    = "2.0.0"
   context    = module.context.self
   enabled    = local.create_sns_topic
   attributes = concat(module.context.attributes, ["guardduty"])
@@ -30,8 +30,8 @@ module "sns_topic" {
 }
 
 module "findings_label" {
-  source     = "app.terraform.io/SevenPico/context/null"
-  version    = "1.0.2"
+  source     = "SevenPico/context/null"
+  version    = "2.0.0"
   context    = module.context.self
   attributes = concat(module.context.attributes, ["guardduty", "findings"])
 }
