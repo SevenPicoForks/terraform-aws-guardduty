@@ -2,6 +2,7 @@
 # Subscribe the Acccount to GuardDuty
 #-----------------------------------------------------------------------------------------------------------------------
 resource "aws_guardduty_detector" "guardduty" {
+  #checkov:skip=CKV2_AWS_3:skipping 'Ensure GuardDuty is enabled to specific org/region'
   count                        = module.context.enabled ? 1 : 0
   enable                       = module.context.enabled
   finding_publishing_frequency = var.finding_publishing_frequency
